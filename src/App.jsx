@@ -299,6 +299,9 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+const today = new Date();
+const todayStr = today.toISOString().split("T")[0];
+
 const CATEGORIES = {
   work: { label: "Work", color: "#4A90D9" },
   health: { label: "Health", color: "#5BB97B" },
