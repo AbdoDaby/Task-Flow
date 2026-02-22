@@ -104,6 +104,10 @@ const CATEGORIES = {
   general: { label: "General", color: "#94A3B8" },
 };
 
+const generateId = () => Math.random().toString(36).substr(2, 9);
+const today = new Date();
+const todayStr = today.toISOString().split("T")[0];
+
 // ============================================================
 // UTILITY FUNCTIONS
 // ============================================================
