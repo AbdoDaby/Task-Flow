@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { createClient } from "@supabase/supabase-js";
 
 // ============================================================
 // DATABASE SCHEMA (PostgreSQL / Prisma)
@@ -306,6 +307,20 @@ function checkReminders(tasks, setTasks) {
 // ============================================================
 // COMPONENTS
 // ============================================================
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+const CATEGORIES = {
+  work: { label: "Work", color: "#4A90D9" },
+  health: { label: "Health", color: "#5BB97B" },
+  personal: { label: "Personal", color: "#7C5CBF" },
+  general: { label: "General", color: "#94A3B8" },
+};
+
+// Helper to generate unique IDs (for new tasks before saving to DB)
+const generateId = () => Math.random().toString(36).substr(2, 9);
 
 // -- Styles injected globally
 const STYLES = `
@@ -1048,17 +1063,24 @@ export default function App() {
 
   // Fetch tasks
   useEffect(() => {
-    fetch(`${API_URL}/tasks`)
-      .then(res => res.json())
-      .then(data => {
+    const fetchTasks = async () => {
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('*')
+        .order('startTime', { ascending: true });
+
+      if (error) {
+        addToast("Error", "Could not load tasks from Supabase", "error");
+      } else {
         const formatted = data.map(t => ({
           ...t,
           startTime: new Date(t.startTime),
           endTime: new Date(t.endTime)
         }));
         setTasks(formatted);
-      })
-      .catch(err => addToast("Error", "Could not load tasks", "error"));
+      }
+    };
+    fetchTasks();
   }, [addToast]);
 
   // Request notification permission on mount
@@ -1100,47 +1122,57 @@ export default function App() {
     if (!task) return;
 
     try {
-      const res = await fetch(`${API_URL}/tasks/${taskId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ completed: !task.completed })
-      });
-      const updatedTask = await res.json();
+      const { data, error } = await supabase
+        .from('tasks')
+        .update({ completed: !task.completed, completedAt: !task.completed ? new Date().toISOString() : null })
+        .eq('id', taskId)
+        .select()
+        .single();
+
+      if (error) throw error;
 
       setTasks((prev) =>
         prev.map((t) =>
           t.id === taskId
-            ? { ...updatedTask, startTime: new Date(updatedTask.startTime), endTime: new Date(updatedTask.endTime) }
+            ? { ...data, startTime: new Date(data.startTime), endTime: new Date(data.endTime) }
             : t
         )
       );
     } catch (err) {
-      addToast("Error", "Could not update task", "error");
+      addToast("Error", "Could not update task in Supabase", "error");
     }
   };
 
   const handleAddTask = async (task) => {
     try {
-      const res = await fetch(`${API_URL}/tasks`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(task)
-      });
-      const savedTask = await res.json();
-      setTasks((prev) => [...prev, { ...savedTask, startTime: new Date(savedTask.startTime), endTime: new Date(savedTask.endTime) }]);
-      addToast("Task Added", `"${task.title}" added to your schedule`, "success");
+      const { data, error } = await supabase
+        .from('tasks')
+        .insert([{ ...task, startTime: task.startTime.toISOString(), endTime: task.endTime.toISOString() }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setTasks((prev) => [...prev, { ...data, startTime: new Date(data.startTime), endTime: new Date(data.endTime) }]);
+      addToast("Task Added", `"${task.title}" added to Supabase`, "success");
     } catch (err) {
-      addToast("Error", "Could not save task", "error");
+      addToast("Error", "Could not save task to Supabase", "error");
     }
   };
 
   const handleDeleteTask = async (taskId) => {
     try {
-      await fetch(`${API_URL}/tasks/${taskId}`, { method: "DELETE" });
+      const { error } = await supabase
+        .from('tasks')
+        .delete()
+        .eq('id', taskId);
+
+      if (error) throw error;
+
       setTasks((prev) => prev.filter((t) => t.id !== taskId));
-      addToast("Task Deleted", "Task has been removed", "info");
+      addToast("Task Deleted", "Removed from Supabase", "info");
     } catch (err) {
-      addToast("Error", "Could not delete task", "error");
+      addToast("Error", "Could not delete from Supabase", "error");
     }
   };
 
