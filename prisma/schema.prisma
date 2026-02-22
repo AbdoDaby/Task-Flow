@@ -1,0 +1,33 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Task {
+  id            String    @id @default(cuid())
+  title         String
+  description   String?
+  startTime     DateTime
+  endTime       DateTime
+  completed     Boolean   @default(false)
+  completedAt   DateTime?
+  category      String    @default("general")
+  priority      String    @default("medium")
+  color         String    @default("#4A90D9")
+  reminder      Boolean   @default(true)
+  reminderSent  Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Schedule {
+  id            String    @id @default(cuid())
+  date          DateTime
+  busySlots     String    // Storing JSON as string for SQLite compatibility in Prisma if needed, but Json usually works. Let's try Json first.
+  freeSlots     String
+  createdAt     DateTime  @default(now())
+}
