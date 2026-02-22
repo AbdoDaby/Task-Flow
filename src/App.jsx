@@ -96,19 +96,6 @@ CREATE INDEX idx_tasks_reminder ON tasks(reminder, reminder_sent, start_time);
 CREATE INDEX idx_schedules_user_date ON schedules(user_id, date);
 */
 
-const API_URL = "http://localhost:3001/api";
-
-const CATEGORIES = {
-  work: { label: "Work", color: "#4A90D9" },
-  personal: { label: "Personal", color: "#7C5CBF" },
-  health: { label: "Health", color: "#5BB97B" },
-  general: { label: "General", color: "#94A3B8" },
-};
-
-const generateId = () => Math.random().toString(36).substr(2, 9);
-const today = new Date();
-const todayStr = today.toISOString().split("T")[0];
-
 // ============================================================
 // UTILITY FUNCTIONS
 // ============================================================
